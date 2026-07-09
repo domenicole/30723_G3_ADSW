@@ -1,4 +1,7 @@
+const dns = require('dns');
 const { MongoClient } = require('mongodb');
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 let client;
 let db;
