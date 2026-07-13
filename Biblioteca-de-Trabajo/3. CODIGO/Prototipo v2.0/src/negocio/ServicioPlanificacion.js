@@ -30,10 +30,25 @@ export class ServicioPlanificacion {
     if (!fecha || !horaInicio || !horaFin || !cupo) {
       return { exito: false, mensaje: 'Complete todos los datos del horario' };
     }
+    if (horaInicio >= horaFin) {
+      return { exito: false, mensaje: 'La hora de inicio debe ser menor a la hora de fin' };
+    }
     if (Number(cupo) < 1) {
       return { exito: false, mensaje: 'El cupo mínimo es 1' };
     }
-    const horario = new Horario({ id: Date.now(), fecha, horaInicio, horaFin, cupo: Number(cupo), estado, consultorioId, fisioterapeuta, citasAsignadas: 0 });
+    
+    // Validar solapamiento
+    const consultorioIdNum = Number(consultorioId);
+    const solapamiento = this.horarios.some(h => {
+      if (h.estado === 'Inactivo' || h.fecha !== fecha || h.consultorioId !== consultorioIdNum) return false;
+      return (horaInicio < h.horaFin && horaFin > h.horaInicio);
+    });
+
+    if (solapamiento) {
+      return { exito: false, mensaje: 'El consultorio ya tiene un horario que se solapa en esa franja' };
+    }
+
+    const horario = new Horario({ id: Date.now(), fecha, horaInicio, horaFin, cupo: Number(cupo), estado, consultorioId: consultorioIdNum, fisioterapeuta, citasAsignadas: 0 });
     this.horariosRepo.guardar(horario);
     this.horarios = this.horariosRepo.listar();
     this.registrarAuditoria('REGISTRO_HORARIO', horario);

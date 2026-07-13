@@ -11,8 +11,10 @@ export class ServicioUsuarios {
     return this.usuarioRepo.listar();
   }
 
-  async registrarUsuario(correo, password, perfilId) {
-    const usuario = { id: Date.now(), correo, password, perfilId, estado: 'Activo' };
+  async registrarUsuario(username, correo, password, perfilId) {
+    const perfilIdNumerico = Number(perfilId);
+    // Para soportar perfiles de tipo ObjectId lo mandamos directo en perfilId en el backend
+    const usuario = { id: Date.now(), username, correo, password, perfilId, estado: 'Activo' };
     await this.usuarioRepo.guardar(usuario);
     this.gestor.notificar({ tipo: 'USUARIO_REGISTRADO', datos: { ...usuario, password: undefined } });
     return { exito: true, mensaje: 'Usuario registrado' };

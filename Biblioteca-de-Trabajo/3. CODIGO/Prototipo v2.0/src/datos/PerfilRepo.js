@@ -5,6 +5,10 @@ export class PerfilRepo {
     return obtenerJSON('/api/perfiles');
   }
 
+  async obtenerPorId(id) {
+    return obtenerJSON(`/api/perfiles/${id}`);
+  }
+
   async guardar(perfil) {
     return enviarJSON('/api/perfiles', 'POST', perfil);
   }

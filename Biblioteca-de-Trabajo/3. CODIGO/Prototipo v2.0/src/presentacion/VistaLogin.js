@@ -14,17 +14,19 @@ export class VistaLogin {
       <div class="auth-screen">
         <div class="auth-card">
           <h1>FiCitas</h1>
-          <p>Iniciar sesión</p>
+          <p>Iniciar sesión (Actualizado)</p>
           <form id="loginForm" class="auth-form">
-            <label>Correo<input id="correo" type="email" required /></label>
+            <label>Correo o Username<input id="correo" type="text" required /></label>
             <label>Contraseña<input id="password" type="password" required /></label>
             <button class="primary-btn" type="submit">Ingresar</button>
+            <button id="btnRecuperar" class="secondary-btn" type="button">Recuperar contraseña</button>
           </form>
         </div>
       </div>
     `;
 
     document.getElementById('loginForm').addEventListener('submit', (e) => this.ingresar(e));
+    document.getElementById('btnRecuperar').addEventListener('click', () => this.showVistaRecuperarContrasena());
   }
 
   async ingresar(e) {
@@ -34,15 +36,34 @@ export class VistaLogin {
     const res = await this.authSvc.iniciarSesion(correo, pass);
 
     if (res.exito) {
-      alert(`Bienvenido ${res.usuario.correo}`);
-      if (res.perfil.nombre === 'Administrador') {
-        this.showVistaPerfiles();
+      window.appState.currentUser = res.usuario;
+      window.appState.currentProfile = res.perfil;
+      window.appState.permisosActuales = Array.isArray(res.perfil?.permisos) ? res.perfil.permisos : [];
+
+      const perfilNombre = (res.perfil?.nombre || '').trim().toLowerCase();
+      
+      if (!res.perfil) {
+        alert(`Bienvenido ${res.usuario.correo}\n\n⚠️ ADVERTENCIA: Tu usuario NO tiene un perfil válido asignado en la base de datos. Se mostrará la vista por defecto (Auxiliar).`);
       } else {
+        alert(`Bienvenido ${res.usuario.correo}\nPerfil detectado: ${res.perfil.nombre}`);
+      }
+
+      if (this.esAdministrador(res.perfil)) {
+        this.showVistaPerfiles();
+      } else if (perfilNombre === 'fisioterapeuta') {
+        this.showVistaPlanificacion();
+      } else {
+        // Auxiliar y otros
         this.showVistaPacientes();
       }
     } else {
       alert(res.mensaje);
     }
+  }
+
+  esAdministrador(perfil) {
+    const nombre = (perfil?.nombre || '').trim().toLowerCase();
+    return nombre === 'administrador' || (Array.isArray(perfil?.permisos) && perfil.permisos.includes('GESTION_PERFILES'));
   }
 
   showVistaPerfiles() {
@@ -54,6 +75,19 @@ export class VistaLogin {
   showVistaPacientes() {
     import('./VistaPacientes.js').then(({ VistaPacientes }) => {
       new VistaPacientes(this.gestor);
+    });
+  }
+
+  showVistaPlanificacion() {
+    import('./VistaPlanificacion.js').then(({ VistaPlanificacion }) => {
+      const vista = new VistaPlanificacion(this.gestor, window.appState.currentUser);
+      vista.render();
+    });
+  }
+
+  showVistaRecuperarContrasena() {
+    import('./VistaRecuperarContrasena.js').then(({ VistaRecuperarContrasena }) => {
+      new VistaRecuperarContrasena(this.gestor, this.authSvc);
     });
   }
 }

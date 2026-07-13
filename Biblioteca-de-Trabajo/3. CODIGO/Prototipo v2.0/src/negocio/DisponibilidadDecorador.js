@@ -20,8 +20,9 @@ function haySolapamiento(citas, consultorio, fecha, hora, duracionMinutos, idExc
 }
 
 export class DisponibilidadDecorador {
-  constructor(servicioBase) {
+  constructor(servicioBase, pacienteRepo) {
     this.servicioBase = servicioBase;
+    this.pacienteRepo = pacienteRepo;
   }
 
   async obtenerTodas() {
@@ -29,6 +30,17 @@ export class DisponibilidadDecorador {
   }
 
   async registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracion) {
+    if (this.pacienteRepo) {
+      const pacientes = await this.pacienteRepo.listar();
+      const paciente = pacientes.find(p => p.cedula === pacienteId);
+      if (!paciente) {
+        return { exito: false, mensaje: 'No existe un paciente registrado con esa cédula' };
+      }
+      if (paciente.estado !== 'Activo') {
+        return { exito: false, mensaje: 'El paciente no está activo. No se pueden agendar citas.' };
+      }
+    }
+
     const duracionMinutos = Number(duracion);
     if (!Number.isFinite(duracionMinutos) || duracionMinutos <= 0) {
       return { exito: false, mensaje: 'La duración de la cita no es válida' };
@@ -54,7 +66,7 @@ export class DisponibilidadDecorador {
     return this.servicioBase.cancelarCita(id, motivo);
   }
 
-  async reprogramarCita(id, fecha, hora) {
+  async reprogramarCita(id, fecha, hora, servicio, consultorio) {
     const inicio = combinarFechaHora(fecha, hora);
     if (Number.isNaN(inicio.getTime()) || inicio < new Date()) {
       return { exito: false, mensaje: 'No se puede reprogramar una cita a una fecha u hora pasada' };
@@ -66,10 +78,11 @@ export class DisponibilidadDecorador {
       return { exito: false, mensaje: 'Cita no encontrada' };
     }
 
-    if (haySolapamiento(citas, citaActual.consultorio, fecha, hora, Number(citaActual.duracion), citaActual.id)) {
+    const nuevoConsultorio = consultorio || citaActual.consultorio;
+    if (haySolapamiento(citas, nuevoConsultorio, fecha, hora, Number(citaActual.duracion), citaActual.id)) {
       return { exito: false, mensaje: 'El consultorio ya tiene una cita agendada en ese horario' };
     }
 
-    return this.servicioBase.reprogramarCita(id, fecha, hora);
+    return this.servicioBase.reprogramarCita(id, fecha, hora, servicio, consultorio);
   }
 }

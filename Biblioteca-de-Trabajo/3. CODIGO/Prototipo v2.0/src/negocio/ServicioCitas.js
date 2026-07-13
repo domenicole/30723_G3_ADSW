@@ -12,8 +12,8 @@ export class ServicioCitas {
     return this.citaRepo.listar();
   }
 
-  async registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracion) {
-    const cita = new Cita({ id: Date.now(), pacienteId, servicio, consultorio, fecha, hora, duracion, estado: 'Programada' });
+  async registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracion, fisioterapeuta) {
+    const cita = new Cita({ id: Date.now(), pacienteId, servicio, consultorio, fecha, hora, duracion, fisioterapeuta, estado: 'Programada' });
     await this.citaRepo.guardar(cita);
     this.gestor.notificar({ tipo: 'CITA_REGISTRADA', datos: cita });
     return { exito: true, mensaje: 'Cita registrada', cita };
@@ -28,11 +28,22 @@ export class ServicioCitas {
     return { exito: true, mensaje: 'Cita cancelada', cita };
   }
 
-  async reprogramarCita(id, fecha, hora) {
-    const cita = await this.citaRepo.actualizar(id, { fecha, hora, estado: 'Reprogramada' });
-    if (!cita) {
+  async reprogramarCita(id, fecha, hora, servicio, consultorio, fisioterapeuta) {
+    const citaActual = await this.citaRepo.obtenerPorId(id);
+    if (!citaActual) {
       return { exito: false, mensaje: 'Cita no encontrada' };
     }
+    
+    const update = { 
+      fecha, 
+      hora, 
+      estado: 'Reprogramada',
+      servicio: servicio || citaActual.servicio,
+      consultorio: consultorio || citaActual.consultorio,
+      fisioterapeuta: fisioterapeuta || citaActual.fisioterapeuta
+    };
+
+    const cita = await this.citaRepo.actualizar(id, update);
     this.gestor.notificar({ tipo: 'CITA_REPROGRAMADA', datos: cita });
     return { exito: true, mensaje: 'Cita reprogramada', cita };
   }

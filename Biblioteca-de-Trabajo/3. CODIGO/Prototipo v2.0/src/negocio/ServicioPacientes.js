@@ -14,11 +14,12 @@ export class ServicioPacientes {
     return this.pacienteRepo.obtenerPorId(id);
   }
 
-  async registrarPaciente(cedula, nombre, telefono, correo, canalPreferido, fecha, domicilio, ocupacion, estadoCivil) {
+  async registrarPaciente(cedula, nombre, sexo, telefono, correo, canalPreferido, fecha, domicilio, ocupacion, estadoCivil) {
     const paciente = new Paciente({
       id: Date.now(),
       cedula,
       nombre,
+      sexo,
       telefono,
       correo,
       canalPreferido,

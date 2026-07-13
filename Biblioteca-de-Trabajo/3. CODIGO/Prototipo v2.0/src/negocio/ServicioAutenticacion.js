@@ -12,7 +12,19 @@ export class ServicioAutenticacion {
       return { exito: false, mensaje: resultado.mensaje || 'Credenciales inválidas' };
     }
 
-    this.gestor.notificar({ tipo: 'LOGIN', datos: { correo } });
+    this.gestor.notificar({ tipo: 'LOGIN', datos: { usuario: resultado.usuario, perfil: resultado.perfil } });
     return { exito: true, usuario: resultado.usuario, perfil: resultado.perfil };
+  }
+
+  async solicitarRecuperacion(correo) {
+    return this.usuarioRepo.solicitarRecuperacion(correo);
+  }
+
+  async verificarCodigoRecuperacion(correo, codigo) {
+    return this.usuarioRepo.verificarCodigoRecuperacion(correo, codigo);
+  }
+
+  async cambiarContrasena(correo, codigo, nuevaContrasena) {
+    return this.usuarioRepo.cambiarContrasena(correo, codigo, nuevaContrasena);
   }
 }

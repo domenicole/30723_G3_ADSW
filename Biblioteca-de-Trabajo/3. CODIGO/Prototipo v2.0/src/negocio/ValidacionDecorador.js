@@ -60,12 +60,15 @@ export class ValidacionDecorador {
     return this.servicioBase.obtenerPacientes();
   }
 
-  async registrarPaciente(cedula, nombre, telefono, correo, canalPreferido, fecha, domicilio, ocupacion, estadoCivil) {
+  async registrarPaciente(cedula, nombre, sexo, telefono, correo, canalPreferido, fecha, domicilio, ocupacion, estadoCivil) {
     if (!validarCedulaEcuatoriana(cedula)) {
       return { exito: false, mensaje: 'La cédula ecuatoriana ingresada no es válida' };
     }
     if (!validarTextoSeguro(nombre)) {
       return { exito: false, mensaje: 'El nombre es inválido o contiene contenido no permitido' };
+    }
+    if (!validarTextoSeguro(sexo)) {
+      return { exito: false, mensaje: 'El sexo es inválido o contiene contenido no permitido' };
     }
     if (!validarTelefono(telefono)) {
       return { exito: false, mensaje: 'El teléfono debe tener 10 dígitos' };
@@ -83,7 +86,7 @@ export class ValidacionDecorador {
       return { exito: false, mensaje: 'La ocupación es inválida o contiene contenido no permitido' };
     }
 
-    return this.servicioBase.registrarPaciente(cedula, nombre, telefono, correo, canalPreferido, fecha, domicilio, ocupacion, estadoCivil);
+    return this.servicioBase.registrarPaciente(cedula, nombre, sexo, telefono, correo, canalPreferido, fecha, domicilio, ocupacion, estadoCivil);
   }
 
   async modificarPaciente(id, domicilio, telefono, correo, canalPreferido, ocupacion, estadoCivil) {
@@ -119,5 +122,38 @@ export class ValidacionDecorador {
     }
 
     return this.servicioBase.iniciarSesion(correo, pass);
+  }
+
+  async solicitarRecuperacion(correo) {
+    if (contieneScript(correo) || !validarCorreo(correo)) {
+      return { exito: false, mensaje: 'El correo electrónico no es válido' };
+    }
+    return this.servicioBase.solicitarRecuperacion(correo);
+  }
+
+  async verificarCodigoRecuperacion(correo, codigo) {
+    if (!validarCorreo(correo)) {
+      return { exito: false, mensaje: 'El correo electrónico no es válido' };
+    }
+    if (typeof codigo !== 'string' || !/^\d{6}$/.test(codigo)) {
+      return { exito: false, mensaje: 'El código debe contener 6 dígitos' };
+    }
+    return this.servicioBase.verificarCodigoRecuperacion(correo, codigo);
+  }
+
+  async cambiarContrasena(correo, codigo, nuevaContrasena, confirmarContrasena) {
+    if (!validarCorreo(correo)) {
+      return { exito: false, mensaje: 'El correo electrónico no es válido' };
+    }
+    if (typeof codigo !== 'string' || !/^\d{6}$/.test(codigo)) {
+      return { exito: false, mensaje: 'El código debe contener 6 dígitos' };
+    }
+    if (typeof nuevaContrasena !== 'string' || nuevaContrasena.length < 5) {
+      return { exito: false, mensaje: 'La nueva contraseña debe tener al menos 5 caracteres' };
+    }
+    if (nuevaContrasena !== confirmarContrasena) {
+      return { exito: false, mensaje: 'Las contraseñas no coinciden' };
+    }
+    return this.servicioBase.cambiarContrasena(correo, codigo, nuevaContrasena);
   }
 }

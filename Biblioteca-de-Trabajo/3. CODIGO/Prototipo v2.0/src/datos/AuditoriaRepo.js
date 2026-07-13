@@ -3,7 +3,12 @@ export class AuditoriaRepo {
     this.items = [];
   }
 
+  listar() {
+    return this.items;
+  }
+
   guardar(item) {
     this.items.push(item);
+    return item;
   }
 }
