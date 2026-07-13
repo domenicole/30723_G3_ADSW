@@ -10,5 +10,14 @@ export async function enviarJSON(url, metodo, cuerpo) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(cuerpo),
   });
+  
+  if (!respuesta.ok) {
+    console.error(`Error HTTP ${respuesta.status} en ${url}`);
+    try {
+      return await respuesta.json();
+    } catch {
+      return { exito: false, mensaje: `Error de servidor: ${respuesta.status}` };
+    }
+  }
   return respuesta.json();
 }

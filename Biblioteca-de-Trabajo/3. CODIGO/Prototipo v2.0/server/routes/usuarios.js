@@ -105,6 +105,40 @@ router.post('/', async (req, res) => {
   res.status(201).json(usuarioSinPassword);
 });
 
+router.patch('/:id', async (req, res) => {
+  const db = getDb();
+  let { password, perfilId, ...resto } = req.body;
+  
+  const idStr = req.params.id;
+  let queryId;
+  if (ObjectId.isValid(idStr)) {
+    queryId = new ObjectId(idStr);
+  } else {
+    queryId = Number(idStr);
+  }
+
+  const usuarioActual = await db.collection('usuarios').findOne({ _id: queryId }) || await db.collection('usuarios').findOne({ id: queryId });
+  if (!usuarioActual) {
+    return res.status(404).json({ exito: false, mensaje: 'Usuario no encontrado' });
+  }
+
+  let updateData = { ...resto };
+  if (password && password.trim() !== '') {
+    updateData.password = await bcrypt.hash(password, SALT_ROUNDS);
+  }
+
+  if (perfilId) {
+    if (ObjectId.isValid(perfilId)) {
+      updateData.perfilId = new ObjectId(perfilId);
+    } else {
+      updateData.perfilId = Number(perfilId);
+    }
+  }
+
+  await db.collection('usuarios').updateOne({ _id: usuarioActual._id }, { $set: updateData });
+  res.json({ exito: true, mensaje: 'Usuario actualizado correctamente' });
+});
+
 router.post('/login', async (req, res) => {
   const { correo, password } = req.body;
   const db = getDb();

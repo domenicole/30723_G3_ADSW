@@ -1,14 +1,11 @@
+import { obtenerJSON, enviarJSON } from './apiCliente.js';
+
 export class AuditoriaRepo {
-  constructor() {
-    this.items = [];
+  async listar() {
+    return obtenerJSON('/api/auditoria');
   }
 
-  listar() {
-    return this.items;
-  }
-
-  guardar(item) {
-    this.items.push(item);
-    return item;
+  async guardar(item) {
+    return enviarJSON('/api/auditoria', 'POST', item);
   }
 }

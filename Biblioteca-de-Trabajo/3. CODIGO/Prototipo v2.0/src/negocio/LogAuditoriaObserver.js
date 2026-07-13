@@ -13,14 +13,12 @@ export class LogAuditoriaObserver extends IObservadorAuditoria {
     const ahora = new Date();
     const datos = evento.datos || {};
     const registro = {
-      id: Date.now(),
-      usuario: datos.usuario?.correo || datos.usuario?.nombre || datos.usuario || 'Sistema',
-      rol: datos.perfil?.nombre || datos.rol || 'Sistema',
-      fecha: ahora.toISOString().slice(0, 10),
-      hora: ahora.toTimeString().slice(0, 8),
+      usuarioId: datos.usuario?.id || datos.usuario?._id || 'Sistema',
+      perfilNombre: datos.perfil?.nombre || datos.rol || 'Desconocido',
       accion: evento.tipo,
       datosAnteriores: datos.anteriores ?? null,
-      datosModificados: datos.modificados ?? datos.nuevos ?? datos.actuales ?? null,
+      datosNuevos: datos.modificados ?? datos.nuevos ?? datos.actuales ?? null,
+      fecha: ahora.toISOString()
     };
 
     this.auditoriaRepo.guardar(registro);

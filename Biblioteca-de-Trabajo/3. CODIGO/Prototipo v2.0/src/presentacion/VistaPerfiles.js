@@ -22,6 +22,11 @@ export class VistaPerfiles {
     this.perfiles = [];
     this.perfilEditandoId = null;
     this.filtros = { texto: '', estado: 'Todos' };
+    
+    this.usuarios = [];
+    this.usuarioEditandoId = null;
+    this.filtrosUsuarios = { texto: '' };
+    
     this.render();
   }
 
@@ -72,12 +77,25 @@ export class VistaPerfiles {
           <section id="usuarios" class="view-card">
             <h3>Perfiles de Empleados</h3>
             <form id="formUsuario" class="form-grid">
-              <label>Nombre de Usuario<input id="usernameUsuario" required /></label>
-              <label>Correo<input id="correoUsuario" required /></label>
-              <label>Contraseña<input id="passUsuario" required /></label>
-              <label>Perfil<select id="perfilUsuario"></select></label>
-              <button class="primary-btn" type="submit" style="width: max-content;">Crear Empleado</button>
+              <input type="hidden" id="idUsuario" />
+              <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                 <label>Nombre de Usuario<input id="usernameUsuario" required /></label>
+                 <label>Correo<input id="correoUsuario" required /></label>
+              </div>
+              <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                 <label>Contraseña<input id="passUsuario" placeholder="Opcional al editar" /></label>
+                 <label>Perfil<select id="perfilUsuario"></select></label>
+                 <label>Estado<select id="estadoUsuario"><option>Activo</option><option>Inactivo</option></select></label>
+              </div>
+              <button class="primary-btn" type="submit" style="width: max-content;">Guardar Empleado</button>
             </form>
+            <div class="form-grid" style="margin-top: 18px;">
+              <label>Buscar por nombre o correo<input id="filtroTextoUsuario" placeholder="Escribe para filtrar" /></label>
+            </div>
+            <table>
+              <thead><tr><th>Username</th><th>Correo</th><th>Perfil</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaUsuarios"></tbody>
+            </table>
           </section>
           
           <div id="planificacion-container"></div>
@@ -89,9 +107,17 @@ export class VistaPerfiles {
     document.getElementById('formUsuario').addEventListener('submit', (e) => this.guardarUsuario(e));
     document.getElementById('filtroNombrePerfil').addEventListener('input', (e) => this.aplicarFiltroNombre(e.target.value));
     document.getElementById('filtroEstadoPerfil').addEventListener('change', (e) => this.aplicarFiltroEstado(e.target.value));
+    
+    document.getElementById('filtroTextoUsuario').addEventListener('input', (e) => {
+      this.filtrosUsuarios.texto = e.target.value.toLowerCase();
+      this.cargarTablaUsuarios();
+    });
+
     document.querySelectorAll('.menu-btn').forEach((btn) => btn.addEventListener('click', () => this.cambiarVista(btn.dataset.view)));
     document.getElementById('btnCerrarSesion').addEventListener('click', () => this.cerrarSesion());
+    
     this.cargarPerfiles();
+    this.cargarUsuarios();
     
     // Inyectar VistaPlanificacion
     new VistaPlanificacion(this.gestor, this.usuarioActual).render('planificacion-container', false);
@@ -244,16 +270,116 @@ export class VistaPerfiles {
     }
   }
 
+  async cargarUsuarios() {
+    this.usuarios = await this.svcUsuarios.obtenerUsuarios() || [];
+    this.cargarTablaUsuarios();
+  }
+
+  cargarTablaUsuarios() {
+    const tbody = document.getElementById('tablaUsuarios');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const texto = this.filtrosUsuarios.texto;
+    const usuariosFiltrados = this.usuarios.filter((u) => 
+      !texto || 
+      (u.username || '').toLowerCase().includes(texto) || 
+      (u.correo || '').toLowerCase().includes(texto)
+    );
+
+    if (usuariosFiltrados.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5">No hay empleados para mostrar</td></tr>';
+      return;
+    }
+
+    usuariosFiltrados.forEach((u) => {
+      const fila = document.createElement('tr');
+      const uid = u.id || u._id;
+      
+      const perfilAsignado = this.perfiles.find(p => String(p.id || p._id) === String(u.perfilId));
+      const nombrePerfil = perfilAsignado ? perfilAsignado.nombre : 'Desconocido';
+      const esSuperAdmin = nombrePerfil.toLowerCase() === 'administrador' && u.correo === 'admin@ficitas.com';
+
+      fila.innerHTML = `
+        <td>${u.username || ''}</td>
+        <td>${u.correo}</td>
+        <td>${nombrePerfil}</td>
+        <td>${u.estado || 'Activo'}</td>
+        <td>
+          <button type="button" class="inline-btn" data-id="${uid}" data-action="editar">✎ Editar</button>
+          ${!esSuperAdmin ? `
+            <button type="button" class="inline-btn ${u.estado === 'Activo' ? 'danger' : 'success'}" data-id="${uid}" data-action="estado">
+               ${u.estado === 'Activo' ? '🚫 Inactivar' : '✅ Activar'}
+            </button>
+          ` : ''}
+        </td>
+      `;
+      
+      fila.querySelector('[data-action="editar"]').addEventListener('click', () => this.cargarUsuarioEnFormulario(u));
+      const btnEstado = fila.querySelector('[data-action="estado"]');
+      if (btnEstado) {
+        btnEstado.addEventListener('click', () => this.cambiarEstadoUsuario(uid, u.estado === 'Activo' ? 'Inactivo' : 'Activo'));
+      }
+      
+      tbody.appendChild(fila);
+    });
+  }
+
+  cargarUsuarioEnFormulario(usuario) {
+    this.usuarioEditandoId = usuario.id || usuario._id;
+    document.getElementById('idUsuario').value = this.usuarioEditandoId;
+    document.getElementById('usernameUsuario').value = usuario.username || '';
+    document.getElementById('correoUsuario').value = usuario.correo || '';
+    document.getElementById('passUsuario').value = '';
+    document.getElementById('perfilUsuario').value = usuario.perfilId || '';
+    document.getElementById('estadoUsuario').value = usuario.estado || 'Activo';
+    const boton = document.querySelector('#formUsuario .primary-btn');
+    if (boton) boton.textContent = 'Actualizar Empleado';
+  }
+
+  limpiarFormularioUsuario() {
+    this.usuarioEditandoId = null;
+    document.getElementById('formUsuario').reset();
+    document.getElementById('idUsuario').value = '';
+    const boton = document.querySelector('#formUsuario .primary-btn');
+    if (boton) boton.textContent = 'Guardar Empleado';
+  }
+
+  async cambiarEstadoUsuario(id, nuevoEstado) {
+    const res = await this.svcUsuarios.modificarUsuario(id, { estado: nuevoEstado });
+    if (res.exito) {
+      await this.cargarUsuarios();
+    } else {
+      alert(res.mensaje);
+    }
+  }
+
   async guardarUsuario(e) {
     e.preventDefault();
     const username = document.getElementById('usernameUsuario').value;
     const correo = document.getElementById('correoUsuario').value;
     const pass = document.getElementById('passUsuario').value;
     const perfilId = document.getElementById('perfilUsuario').value;
-    const res = await this.svcUsuarios.registrarUsuario(username, correo, pass, perfilId);
+    const estado = document.getElementById('estadoUsuario').value;
+    
+    if (!this.usuarioEditandoId && !pass) {
+      alert('La contraseña es obligatoria para nuevos empleados');
+      return;
+    }
+
+    let res;
+    if (this.usuarioEditandoId) {
+      const datos = { username, correo, perfilId, estado };
+      if (pass.trim()) datos.password = pass;
+      res = await this.svcUsuarios.modificarUsuario(this.usuarioEditandoId, datos);
+    } else {
+      res = await this.svcUsuarios.registrarUsuario(username, correo, pass, perfilId);
+    }
+    
     alert(res.mensaje);
     if (res.exito) {
-      document.getElementById('formUsuario').reset();
+      this.limpiarFormularioUsuario();
+      await this.cargarUsuarios();
     }
   }
 

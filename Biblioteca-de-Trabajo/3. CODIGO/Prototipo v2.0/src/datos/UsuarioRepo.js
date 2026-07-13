@@ -9,6 +9,10 @@ export class UsuarioRepo {
     return enviarJSON('/api/usuarios', 'POST', usuario);
   }
 
+  async modificarUsuario(id, datos) {
+    return enviarJSON(`/api/usuarios/${id}`, 'PATCH', datos);
+  }
+
   async login(correo, password) {
     return enviarJSON('/api/usuarios/login', 'POST', { correo, password });
   }

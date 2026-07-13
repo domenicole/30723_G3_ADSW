@@ -19,4 +19,12 @@ export class ServicioUsuarios {
     this.gestor.notificar({ tipo: 'USUARIO_REGISTRADO', datos: { ...usuario, password: undefined } });
     return { exito: true, mensaje: 'Usuario registrado' };
   }
+
+  async modificarUsuario(id, datos) {
+    const res = await this.usuarioRepo.modificarUsuario(id, datos);
+    if (res.exito) {
+      this.gestor.notificar({ tipo: 'USUARIO_MODIFICADO', datos: { id, ...datos } });
+    }
+    return res;
+  }
 }

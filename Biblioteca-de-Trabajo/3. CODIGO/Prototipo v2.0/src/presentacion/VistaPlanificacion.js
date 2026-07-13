@@ -7,6 +7,7 @@ export class VistaPlanificacion {
     this.gestor = gestor;
     this.usuario = usuario;
     this.servicio = new ServicioPlanificacion(gestor, usuario);
+    this.auditoriaRepo = window.appState?.auditoriaRepo || null;
     this.horarioEditandoId = null;
   }
 
@@ -322,9 +323,41 @@ export class VistaPlanificacion {
     });
   }
 
-  cargarAuditoria() {
+  async cargarAuditoria() {
     const lista = document.getElementById('listaAuditoria');
     if (!lista) return;
-    lista.innerHTML = this.servicio.obtenerAuditoria().slice().reverse().map((item) => `<div class="item-card"><small>${item.fecha}</small><br/>${item.mensaje}</div>`).join('');
+    
+    if (!this.auditoriaRepo) {
+      import('../datos/AuditoriaRepo.js').then(({ AuditoriaRepo }) => {
+        this.auditoriaRepo = new AuditoriaRepo();
+        this.renderAuditoria(lista);
+      });
+    } else {
+      this.renderAuditoria(lista);
+    }
+  }
+
+  async renderAuditoria(lista) {
+    try {
+      const logs = await this.auditoriaRepo.listar() || [];
+      if (logs.length === 0) {
+        lista.innerHTML = '<p>No hay registros de auditoría</p>';
+        return;
+      }
+      
+      lista.innerHTML = logs.map((item) => {
+        const fechaObj = new Date(item.fecha);
+        const fechaStr = isNaN(fechaObj.getTime()) ? item.fecha : fechaObj.toLocaleString();
+        return `
+          <div class="item-card" style="font-size: 0.9em;">
+            <small style="color: var(--muted);">${fechaStr}</small><br/>
+            <strong>Acción:</strong> ${item.accion} <br/>
+            <strong>Usuario ID:</strong> ${item.usuarioId} | <strong>Perfil:</strong> ${item.perfilNombre}
+          </div>
+        `;
+      }).join('');
+    } catch (error) {
+      lista.innerHTML = '<p>Error al cargar la auditoría</p>';
+    }
   }
 }
