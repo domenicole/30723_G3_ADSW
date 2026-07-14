@@ -29,7 +29,7 @@ export class DisponibilidadDecorador {
     return this.servicioBase.obtenerTodas();
   }
 
-  async registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracion) {
+  async registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracion, fisioterapeuta) {
     if (this.pacienteRepo) {
       const pacientes = await this.pacienteRepo.listar();
       const paciente = pacientes.find(p => p.cedula === pacienteId);
@@ -59,14 +59,14 @@ export class DisponibilidadDecorador {
       return { exito: false, mensaje: 'El consultorio ya tiene una cita agendada en ese horario' };
     }
 
-    return this.servicioBase.registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracionMinutos);
+    return this.servicioBase.registrarCita(pacienteId, servicio, consultorio, fecha, hora, duracionMinutos, fisioterapeuta);
   }
 
   async cancelarCita(id, motivo) {
     return this.servicioBase.cancelarCita(id, motivo);
   }
 
-  async reprogramarCita(id, fecha, hora, servicio, consultorio) {
+  async reprogramarCita(id, fecha, hora, servicio, consultorio, fisioterapeuta) {
     const inicio = combinarFechaHora(fecha, hora);
     if (Number.isNaN(inicio.getTime()) || inicio < new Date()) {
       return { exito: false, mensaje: 'No se puede reprogramar una cita a una fecha u hora pasada' };
@@ -83,6 +83,6 @@ export class DisponibilidadDecorador {
       return { exito: false, mensaje: 'El consultorio ya tiene una cita agendada en ese horario' };
     }
 
-    return this.servicioBase.reprogramarCita(id, fecha, hora, servicio, consultorio);
+    return this.servicioBase.reprogramarCita(id, fecha, hora, servicio, consultorio, fisioterapeuta);
   }
 }

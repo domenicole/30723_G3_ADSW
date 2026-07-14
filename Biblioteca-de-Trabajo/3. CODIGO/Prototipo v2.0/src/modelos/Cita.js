@@ -1,5 +1,5 @@
 export class Cita {
-  constructor({ id, pacienteId, servicio, consultorio, fecha, hora, duracion, estado }) {
+  constructor({ id, pacienteId, servicio, consultorio, fecha, hora, duracion, estado, fisioterapeuta = '' }) {
     this.id = id;
     this.pacienteId = pacienteId;
     this.servicio = servicio;
@@ -8,5 +8,6 @@ export class Cita {
     this.hora = hora;
     this.duracion = duracion;
     this.estado = estado;
+    this.fisioterapeuta = fisioterapeuta;
   }
 }
